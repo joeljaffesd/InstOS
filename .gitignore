@@ -1,2 +1,5 @@
 # Local ARM GNU toolchain downloaded by init.sh (~1.5 GB)
 toolchain/
+
+# Build artifacts
+build/
