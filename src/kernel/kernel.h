@@ -2,6 +2,8 @@
 #define _kernel_h
 
 #include <circle/actled.h>
+#include <circle/devicenameservice.h>
+#include <circle/serial.h>
 #include <circle/types.h>
 
 enum TShutdownMode
@@ -23,7 +25,9 @@ public:
 
 private:
 	CActLED m_ActLED;
-	
+	CDeviceNameService m_DeviceNameService;	// singleton, required by CSerialDevice
+	CSerialDevice m_Serial;	// UART0: TxD GPIO14, RxD GPIO15
+
 };
 
 #endif
