@@ -55,6 +55,18 @@ else
 fi
 PREFIX="${TOOLCHAIN_DIR}/${NAME}/bin/${TARGET}-"
 
+# Vendor picocom for serial monitoring (built with the host compiler, not the cross toolchain)
+PICOCOM_DIR="${TOOLCHAIN_DIR}/picocom"
+if [ ! -x "${PICOCOM_DIR}/picocom" ]; then
+  echo -e "${BLUE}Vendoring ${CYAN}picocom${NC}..."
+  rm -rf "$PICOCOM_DIR"
+  git clone --depth 1 --branch 3.1 https://github.com/npat-efault/picocom "$PICOCOM_DIR"
+  make -C "$PICOCOM_DIR"
+  echo -e "${CYAN}picocom${NC} ${BLUE}installed${NC}."
+else
+  echo -e "${CYAN}picocom${NC} ${BLUE}already present, skipping${NC}."
+fi
+
 # Point Circle's build at the local toolchain
 echo -e "${BLUE}Configuring ${YELLOW}Circle${NC}..."
 cat > external/circle/Config.mk <<EOF
