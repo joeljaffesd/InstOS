@@ -24,6 +24,12 @@ $(BUILDDIR)/%.d: %.cpp
 	@mkdir -p $(dir $@)
 	@$(CPP) $(CPPFLAGS) -M -MG -MT $(@:.d=.o) -MT $@ -MF $@ $<
 
+# Intel-hex image for serial upload via the bootloader (devloop.sh).
+# Rules.mk's own .hex rule was parsed before the TARGET remap, so redo it here.
+$(TARGET).hex: $(TARGET).img
+	@echo "  COPY  $@"
+	@$(OBJCOPY) $(TARGET).elf -O ihex $@
+
 distclean:
 	rm -rf $(BUILDDIR)
 

@@ -17,4 +17,8 @@ After cloning, run `init.sh` at the project root.
 
 Then you can use `build.sh` to build, `flash.sh` to flash, and `monitor.sh` to monitor serial.
 
+### Dev Loop
+
+For fast iteration, flash Circle's serial bootloader once with `flash-bootloader.sh`, then use `devloop.sh` to build and push kernels over the UART adapter (GPIO14/15) — no eMMC/SD reflashing per cycle. A running kernel reboots itself back into the bootloader on receiving the reboot magic string, so no power cycle is needed either (unless the kernel has crashed).
+
 ### Have fun.
