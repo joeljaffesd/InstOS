@@ -73,6 +73,9 @@ cat > external/circle/Config.mk <<EOF
 AARCH = 64
 RASPPI = 4
 PREFIX64 = ${PREFIX}
+# CM4 has no VL805; its USB port hangs off the BCM2711's internal xHCI
+# (pairs with otg_mode=1 in config.txt)
+DEFINE += -DUSE_XHCI_INTERNAL
 EOF
 echo -e "${YELLOW}Circle ${BLUE}configured${NC}."
 

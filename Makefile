@@ -3,7 +3,12 @@ BUILDDIR   = build
 
 OBJS = $(BUILDDIR)/src/main.o
 
-LIBS	= $(CIRCLEHOME)/lib/libcircle.a
+LIBS	= $(CIRCLEHOME)/lib/sound/libsound.a \
+	  $(CIRCLEHOME)/lib/usb/libusb.a \
+	  $(CIRCLEHOME)/lib/input/libinput.a \
+	  $(CIRCLEHOME)/lib/fs/libfs.a \
+	  $(CIRCLEHOME)/lib/sched/libsched.a \
+	  $(CIRCLEHOME)/lib/libcircle.a
 
 INCLUDE += -I .
 
