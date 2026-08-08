@@ -1,11 +1,11 @@
 CIRCLEHOME = external/circle
 BUILDDIR   = build
 
-OBJS = $(BUILDDIR)/src/main.o $(BUILDDIR)/src/kernel/kernel.o
+OBJS = $(BUILDDIR)/src/main.o
 
 LIBS	= $(CIRCLEHOME)/lib/libcircle.a
 
-INCLUDE += -I src/kernel
+INCLUDE += -I .
 
 include $(CIRCLEHOME)/Rules.mk
 

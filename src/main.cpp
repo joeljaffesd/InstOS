@@ -1,28 +1,23 @@
-#include "kernel/kernel.h"
-#include <circle/startup.h>
+#include <InstOS.hpp>
 
-int main (void)
-{
-	CKernel Kernel;
-	if (!Kernel.Initialize ())
-	{
-		halt ();
-		return EXIT_HALT;
-	}
-	
-	TShutdownMode ShutdownMode = Kernel.Run ();
+class Blink : public InstOS::Firmware {
+	CActLED mActLED;
 
-	switch (ShutdownMode)
-	{
-	case ShutdownReboot:
-		reboot ();
-		return EXIT_REBOOT;
+	void loop() override {
+		mActLED.On();
+		CTimer::SimpleMsDelay(500);
+		mActLED.Off();
+		CTimer::SimpleMsDelay(500);
 
-	case ShutdownHalt:
-	default:
-		halt ();
-		return EXIT_HALT;
+		static unsigned nCount = 0;
+		CString Message;
+		Message.Format ("InstOS alive, tick %u\r\n", nCount++);
+		this->m_Serial.Write(Message, Message.GetLength());
 	}
 
-  // Never Return!
+};
+
+int main() {
+	Blink mBlink;
+	mBlink.start();
 }
