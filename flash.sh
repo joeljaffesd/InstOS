@@ -56,9 +56,6 @@ dbg () {
   echo "[diag] $*" >&2
 }
 
-# Build
-./build.sh
-
 ################################################################################
 # DISK detection (macOS)
 ################################################################################
@@ -259,6 +256,9 @@ while [ $# -gt 0 ] ; do
   esac
   shift
 done
+
+# Build only once the arguments are known: -h must not rebuild anything.
+./build.sh
 
 [ -e "$IMAGE" ] || fatal "KERNEL image $IMAGE MISSING (build it first, e.g. make in the sample dir)"
 case "$(basename "$IMAGE")" in
