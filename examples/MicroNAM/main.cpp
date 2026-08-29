@@ -220,5 +220,5 @@ int main() {
 #else
 	static NamAmp mFirmware;
 #endif
-	mFirmware.start();
+	mFirmware.start(true);	// true arg starts app with boosted clock speed
 }

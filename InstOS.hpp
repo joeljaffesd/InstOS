@@ -78,7 +78,11 @@ protected:
 	// ONLY because it is declared first above and so is already constructed
 	// -- the same ordering trap that silently forced DHCP in Ethernet.hpp.
 	CLogger m_Logger{CKernelOptions::Get()->GetLogLevel(), &m_Timer};
-	CCPUThrottle m_CPUThrottle; // the firmware boots the ARM at its idle clock (600 MHz on CM4)
+	// Its constructor already applies CKernelOptions' CPU speed (CPUSpeedLow
+	// unless "fast=true" is set), so the ARM sits at its idle clock --
+	// 600 MHz on CM4 -- until start(TRUE) asks for more.
+	CCPUThrottle m_CPUThrottle;
+	boolean m_bFast = FALSE;	// set by start(); read by init()
 
 public:
 	inline static Firmware* instance = nullptr; // Static pointer to the current instance of Program
@@ -101,11 +105,14 @@ public:
 
     m_Serial.RegisterMagicReceivedHandler(RebootMagic, RebootMagicReceived);
 
-    // run at full speed: DSP costs 2.5x more at the boot clock
-    unsigned nBootClock = m_CPUThrottle.GetClockRate();
-    m_CPUThrottle.SetSpeed(CPUSpeedMaximum);
-    m_Logger.Write("InstOS", LogNotice, "ARM clock %u MHz -> %u MHz",
-                   nBootClock / 1000000, m_CPUThrottle.GetClockRate() / 1000000);
+    // Opt-in full speed (start(TRUE)): DSP costs 2.5x more at the idle clock,
+    // but most apps do not need the heat or the power, so the default stands.
+    if (m_bFast) {
+      unsigned nBootClock = m_CPUThrottle.GetClockRate();
+      m_CPUThrottle.SetSpeed(CPUSpeedMaximum);
+      m_Logger.Write("InstOS", LogNotice, "ARM clock %u MHz -> %u MHz",
+                     nBootClock / 1000000, m_CPUThrottle.GetClockRate() / 1000000);
+    }
 
     // bring up registered modules in declaration order; a failed module is
     // logged but not fatal — the rest of the firmware keeps running
@@ -121,10 +128,13 @@ public:
 	// overridable loop operation
 	inline virtual void loop() {}
 
-	// Never returns: halts on init failure, reboots when the magic string arrives
-	void start() {
+	// Never returns: halts on init failure, reboots when the magic string arrives.
+	// bFast runs the ARM at its maximum clock instead of its idle one; opt in
+	// only where the DSP budget needs it (see MicroNAM).
+	void start(boolean bFast = FALSE) {
 		// initialize
     instance = this;
+    m_bFast = bFast;	// must be set before init() reads it
 	  if (!this->init()) {
 		  halt();
 	  }
