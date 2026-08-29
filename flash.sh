@@ -6,9 +6,12 @@
 # be copied to a FAT32 boot partition alongside the Raspberry Pi firmware from
 # boot/ and a config.txt — never dd'ed to the raw device.
 #
-# Usage:  ./flash.sh [--sd] [path/to/kernelN.img]
-#   --sd    deploy to an SD card (insert/remove detection) instead of a CM4
-#           in USB boot mode (nRPIBOOT jumper + rpiboot)
+# Usage:  ./flash.sh [--sd] [examples/<name> | path/to/kernelN.img]
+#   --sd             deploy to an SD card (insert/remove detection) instead of
+#                    a CM4 in USB boot mode (nRPIBOOT jumper + rpiboot)
+#   examples/<name>  build that example, then deploy it
+#   path/to/*.img    deploy an existing image as-is; nothing is built
+#   (no argument)    build the Makefile's default example, then deploy it
 ################################################################################
 set -u
 SCRIPT_P=$(readlink -f "$0" || realpath "$0")
@@ -248,17 +251,34 @@ if [ "$OS" != "Linux" ] && [ "$OS" != "Darwin" ] ; then
   fatal "Supported on Linux and macOS only"
 fi
 
+EXAMPLE=
+IMAGE_GIVEN=0
+
 while [ $# -gt 0 ] ; do
   case "$1" in
     --sd) MODE=sd ;;
-    -h|--help) sed -n '2,12p' "$SCRIPT_P" ; exit 0 ;;
-    *) IMAGE=$1 ;;
+    -h|--help) sed -n '2,/^####/p' "$SCRIPT_P" ; exit 0 ;;
+    # An explicit image is deployed as-is; anything else names an example
+    # directory to build (same argument build.sh takes).
+    *.img) IMAGE=$1 ; IMAGE_GIVEN=1 ;;
+    *) [ -d "$1" ] || fatal "no such example directory: $1 (or pass a kernel*.img)"
+       EXAMPLE=$1 ;;
   esac
   shift
 done
 
-# Build only once the arguments are known: -h must not rebuild anything.
-./build.sh
+[ -n "$EXAMPLE" ] && [ "$IMAGE_GIVEN" = "1" ] \
+  && fatal "give an example directory OR an image, not both"
+
+# Build only once the arguments are known: -h must not rebuild anything, and
+# an explicit image is deployed as handed to us rather than rebuilt over.
+if [ "$IMAGE_GIVEN" = "0" ] ; then
+  if [ -n "$EXAMPLE" ] ; then
+    ./build.sh "$EXAMPLE"
+  else
+    ./build.sh
+  fi
+fi
 
 [ -e "$IMAGE" ] || fatal "KERNEL image $IMAGE MISSING (build it first, e.g. make in the sample dir)"
 case "$(basename "$IMAGE")" in
