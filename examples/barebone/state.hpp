@@ -1,7 +1,7 @@
 #ifndef STATE_HPP
 #define STATE_HPP
 
-// The shared state cast between maker and taker — layout-identical to
+// The shared state cast from audio/ (maker) to graphics/ (taker) — layout-identical to
 // Jaffrack's include/state.hpp, so either end of this pair also interops
 // with a stock Cuttlebone peer on a laptop running the Jaffrack apps.
 // POD only: this struct's bytes ARE the wire format.

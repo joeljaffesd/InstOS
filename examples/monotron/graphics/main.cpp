@@ -16,7 +16,7 @@ static constexpr float kPi = 3.14159265358979323846f;
 // three-way mode selector and the pitch ribbon all live here; the resolved
 // parameter set is cast to the audio box, which owns no controls at all.
 // Upstream did the same split with allolib's ParameterServer over OSC.
-// Direct cable, static IPs: maker (panel) .1 -> taker (audio) .2.
+// Direct cable, static IPs: graphics/ (panel, maker) .1 -> audio/ (taker) .2.
 class MonotronMaker : public InstOS::Firmware {
 	// modules: declaration order = init order
 	InstOS::USBHost mUSB;

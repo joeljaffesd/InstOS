@@ -7,8 +7,10 @@
 
 // The sending half of the split oscilloscope: this box has the USB audio
 // interface. Input passes through to the outputs while filling the shared
-// ring, which is cast over the Ethernet cable to the taker box (which has
-// the screen). Direct cable, static IPs: maker .1 -> taker .2.
+// ring, which is cast over the Ethernet cable to the graphics/ box (which
+// has the screen). Note this example casts the other way round from the
+// others: here the AUDIO box is the maker.
+// Direct cable, static IPs: audio/ (maker) .1 -> graphics/ (taker) .2.
 class ScopeMaker : public InstOS::Firmware, public InstOS::AudioProcessor {
 	// modules: declaration order = init order
 	InstOS::USBHost mUSB;

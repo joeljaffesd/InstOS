@@ -13,7 +13,7 @@
 // entirely -- with a fixed-pitch keyboard there is nothing to allocate, and
 // a key that arrives already held (say the first packet after a dropout)
 // sounds correctly rather than needing a note-on that never came.
-// Direct cable, static IPs: maker (screen) .1 -> taker (audio) .2.
+// Direct cable, static IPs: graphics/ (screen, maker) .1 -> audio/ (taker) .2.
 class KeyboardTaker : public InstOS::Firmware, public InstOS::AudioProcessor {
 	// modules: declaration order = init order
 	InstOS::USBHost mUSB;

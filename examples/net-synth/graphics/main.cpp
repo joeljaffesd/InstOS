@@ -11,7 +11,7 @@
 // monophonic. Every contact is hit-tested to a key and folded into a single
 // bitmask, so two fingers on the same key collapse to one held note for
 // free, and the state size does not grow with the number of fingers.
-// Direct cable, static IPs: maker (screen) .1 -> taker (audio) .2.
+// Direct cable, static IPs: graphics/ (screen, maker) .1 -> audio/ (taker) .2.
 class KeyboardMaker : public InstOS::Firmware {
 	// modules: declaration order = init order
 	InstOS::USBHost mUSB;

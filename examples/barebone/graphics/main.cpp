@@ -5,10 +5,10 @@
 #include "../state.hpp"
 
 // The receiving half of the split oscilloscope: this box has the screen.
-// It takes the shared audio ring cast by the maker box over the Ethernet
+// It takes the shared audio ring cast by the audio/ box over the Ethernet
 // cable and draws it — one second of history, min/max envelope per column,
 // newest at the right edge. No USB audio here at all.
-// Direct cable, static IPs: maker .1 -> taker .2.
+// Direct cable, static IPs: audio/ (maker) .1 -> graphics/ (taker) .2.
 class ScopeTaker : public InstOS::Firmware {
 	// modules: declaration order = init order
 	InstOS::Ethernet mNet{"192.168.10.2"};

@@ -14,7 +14,7 @@
 // Signal path, per sample, exactly as upstream:
 //   lfo -> frequency modulation -> quasi-bandlimited FM saw carrier
 //       -> ribbon gate -> damped feedback delay -> bypass gate
-// Direct cable, static IPs: maker (panel) .1 -> taker (audio) .2.
+// Direct cable, static IPs: graphics/ (panel, maker) .1 -> audio/ (taker) .2.
 class MonotronTaker : public InstOS::Firmware, public InstOS::AudioProcessor {
 	// modules: declaration order = init order
 	InstOS::USBHost mUSB;
