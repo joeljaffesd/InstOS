@@ -1,0 +1,14 @@
+# InstOS additions, appended to config.txt on the boot partition by flash.sh.
+# [all] is load-bearing: the base config ends inside a [pi5] section, and
+# config.txt conditional filters are sticky — without this reset the whole
+# block is silently ignored on non-Pi5 hardware.
+[all]
+
+# Force the HDMI output to exist at the 9.3" panel's native mode even when no
+# display is detected at boot (EDID is only probed at power-on, and the panel
+# may be unpowered then to avoid back-powering the CM4). Timing per Waveshare:
+# https://www.waveshare.com/wiki/9.3inch_1600x600_LCD
+hdmi_force_hotplug=1
+hdmi_group=2
+hdmi_mode=87
+hdmi_cvt 1600 600 60 6 0 0 0

@@ -32,7 +32,7 @@ echo -e "${BLUE}Configuring for host${NC} ${CYAN}${HOST}${NC}."
 # Init Submodules
 echo -e "${BLUE}Fetching ${PURPLE}submodules${NC}..."
 git submodule update --init --recursive
-echo -e "${PURPLE}Submodules${NC} ${BLUE}Fetched${NC}."
+echo -e "${GREEN}Fetched ${PURPLE}submodules${NC}."
 
 # Grab ARM cross-compiler toolchain for building
 TOOLCHAIN_VERSION="15.2.rel1"
@@ -49,9 +49,9 @@ if [ ! -x "${TOOLCHAIN_DIR}/${NAME}/bin/${TARGET}-gcc" ]; then
   echo -e "${BLUE}Extracting ${CYAN}toolchain${NC}..."
   tar -xf "${TOOLCHAIN_DIR}/${NAME}.tar.xz" -C "$TOOLCHAIN_DIR"
   rm "${TOOLCHAIN_DIR}/${NAME}.tar.xz"
-  echo -e "${CYAN}Toolchain${NC} ${BLUE}installed${NC}."
+  echo -e "${CYAN}Toolchain${NC} ${GREEN}installed${NC}."
 else
-  echo -e "${CYAN}Toolchain${NC} ${BLUE}already present, skipping download${NC}."
+  echo -e "${CYAN}Toolchain${NC} ${GREEN}already present, skipping download${NC}."
 fi
 PREFIX="${TOOLCHAIN_DIR}/${NAME}/bin/${TARGET}-"
 
@@ -62,9 +62,9 @@ if [ ! -x "${PICOCOM_DIR}/picocom" ]; then
   rm -rf "$PICOCOM_DIR"
   git clone --depth 1 --branch 3.1 https://github.com/npat-efault/picocom "$PICOCOM_DIR"
   make -C "$PICOCOM_DIR"
-  echo -e "${CYAN}picocom${NC} ${BLUE}installed${NC}."
+  echo -e "${CYAN}picocom${NC} ${GREEN}installed${NC}."
 else
-  echo -e "${CYAN}picocom${NC} ${BLUE}already present, skipping${NC}."
+  echo -e "${CYAN}picocom${NC} ${GREEN}already present, skipping${NC}."
 fi
 
 # Point Circle's build at the local toolchain
@@ -77,12 +77,12 @@ PREFIX64 = ${PREFIX}
 # (pairs with otg_mode=1 in config.txt)
 DEFINE += -DUSE_XHCI_INTERNAL
 EOF
-echo -e "${YELLOW}Circle ${BLUE}configured${NC}."
+echo -e "${YELLOW}Circle ${GREEN}configured${NC}."
 
 # Build Circle
 echo -e "${BLUE}Building ${YELLOW}Circle${NC}..."
 cd external/circle; ./makeall clean; ./makeall -j$(getconf _NPROCESSORS_ONLN); cd ../..
-echo -e "${YELLOW}Circle ${BLUE}built${NC}."
+echo -e "${YELLOW}Circle ${GREEN}built${NC}."
 
 # We made it!
-echo -e "${GREEN}${ORANGE}InstOS ${CYAN}Initialized${NC}."
+echo -e "${ORANGE}InstOS ${GREEN}Initialized${NC}."

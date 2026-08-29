@@ -21,9 +21,12 @@ fi
 if [ $# -gt 0 ] ; then
   PORT=$1
 else
+  # Prefer a USB-serial adapter (FTDI etc.) over CDC devices (see devloop.sh)
   case "$(uname -s)" in
-    Darwin) PORT=$(ls /dev/cu.usbserial-* /dev/cu.usbmodem* 2>/dev/null | head -n1) ;;
-    Linux)  PORT=$(ls /dev/ttyUSB* /dev/ttyACM* 2>/dev/null | head -n1) ;;
+    Darwin) PORT=$(ls /dev/cu.usbserial-* 2>/dev/null | head -n1)
+            [ -n "$PORT" ] || PORT=$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1) ;;
+    Linux)  PORT=$(ls /dev/ttyUSB* 2>/dev/null | head -n1)
+            [ -n "$PORT" ] || PORT=$(ls /dev/ttyACM* 2>/dev/null | head -n1) ;;
     *)      echo "ERROR: unsupported platform $(uname -s)" >&2 ; exit 1 ;;
   esac
 fi

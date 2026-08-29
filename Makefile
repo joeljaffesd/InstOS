@@ -1,41 +1,20 @@
-CIRCLEHOME = external/circle
-BUILDDIR   = build
+# Delegates to the selected example (Line 9).
+#
+#   make                                # build the default example
+#   make EXAMPLE=examples/blink         # build another example
+#   make build/kernel8-rpi4.hex         # hex image for devloop.sh
+#
+# Shared build config lives in common.mk; each example dir just includes it.
 
-OBJS = $(BUILDDIR)/src/main.o
+EXAMPLE ?= examples/blink
 
-LIBS	= $(CIRCLEHOME)/lib/sound/libsound.a \
-	  $(CIRCLEHOME)/lib/usb/libusb.a \
-	  $(CIRCLEHOME)/lib/input/libinput.a \
-	  $(CIRCLEHOME)/lib/fs/libfs.a \
-	  $(CIRCLEHOME)/lib/sched/libsched.a \
-	  $(CIRCLEHOME)/lib/libcircle.a
+.PHONY: all distclean
 
-INCLUDE += -I .
+all:
+	@$(MAKE) -C $(EXAMPLE)
 
-include $(CIRCLEHOME)/Rules.mk
-
-# Put the kernel image (and .elf/.map/.lst) in build/ too.
-# Must come after the include so Rules.mk has computed the default name.
-TARGET := $(BUILDDIR)/$(notdir $(TARGET))
-
-# Out-of-tree compile rules; mirror Rules.mk's recipes.
-# Stem trick: build/src/main.o -> stem "src/main" -> src/main.cpp
-$(BUILDDIR)/%.o: %.cpp
-	@mkdir -p $(dir $@)
-	@echo "  CPP   $@"
-	@$(CPP) $(CPPFLAGS) -c -o $@ $<
-
-$(BUILDDIR)/%.d: %.cpp
-	@mkdir -p $(dir $@)
-	@$(CPP) $(CPPFLAGS) -M -MG -MT $(@:.d=.o) -MT $@ -MF $@ $<
-
-# Intel-hex image for serial upload via the bootloader (devloop.sh).
-# Rules.mk's own .hex rule was parsed before the TARGET remap, so redo it here.
-$(TARGET).hex: $(TARGET).img
-	@echo "  COPY  $@"
-	@$(OBJCOPY) $(TARGET).elf -O ihex $@
+build/%.img build/%.hex:
+	@$(MAKE) -C $(EXAMPLE) $(CURDIR)/$@
 
 distclean:
-	rm -rf $(BUILDDIR)
-
--include $(DEPS)
+	rm -rf build

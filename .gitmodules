@@ -1,3 +1,9 @@
 [submodule "external/circle"]
 	path = external/circle
-	url = https://github.com/rsta2/circle
+	url = https://github.com/joeljaffesd/circle
+[submodule "external/barebone"]
+	path = external/barebone
+	url = https://github.com/joeljaffesd/barebone
+[submodule "external/MicroNAM"]
+	path = external/MicroNAM
+	url = https://github.com/jaffco/MicroNAM

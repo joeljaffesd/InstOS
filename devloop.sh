@@ -15,8 +15,9 @@
 # Exit the monitor (Ctrl-A Ctrl-X) to get back to the rebuild prompt, then
 # any key to go again (q or Ctrl-C to quit).
 #
-# FLASHBAUD must match the value the bootloader was built with (default 115200).
-# REBOOTMAGIC must match RebootMagic in src/kernel/kernel.cpp.
+# FLASHBAUD must match the value the bootloader was built with (default 921600;
+# reflash the bootloader via ./flash-bootloader.sh after changing it).
+# REBOOTMAGIC must match RebootMagic in InstOS.hpp.
 #
 # Usage:  ./devloop.sh [port]
 #   port  serial device to use; auto-detected if omitted
@@ -26,7 +27,7 @@ SCRIPT_P=$(readlink -f "$0" || realpath "$0")
 SCRIPT_D=$(dirname "$SCRIPT_P")
 CFLASHY=$SCRIPT_D/external/circle/tools/cflashy
 HEX=build/kernel8-rpi4.hex
-FLASHBAUD=${FLASHBAUD:-115200}
+FLASHBAUD=${FLASHBAUD:-921600}
 USERBAUD=${USERBAUD:-115200}	# kernel's own serial baud (see kernel.cpp)
 REBOOTMAGIC=${REBOOTMAGIC:-reboot-instos}
 
@@ -77,9 +78,13 @@ fi
 
 # Serial port: argument, or auto-detect
 if [ -z "$PORT" ] ; then
+  # Prefer a USB-serial adapter (FTDI etc.) over CDC devices: other gadgets
+  # (Daisy, the InstOS CDC console) also show up as usbmodem/ttyACM
   case "$(uname -s)" in
-    Darwin) PORT=$(ls /dev/cu.usbserial-* /dev/cu.usbmodem* 2>/dev/null | head -n1) ;;
-    Linux)  PORT=$(ls /dev/ttyUSB* /dev/ttyACM* 2>/dev/null | head -n1) ;;
+    Darwin) PORT=$(ls /dev/cu.usbserial-* 2>/dev/null | head -n1)
+            [ -n "$PORT" ] || PORT=$(ls /dev/cu.usbmodem* 2>/dev/null | head -n1) ;;
+    Linux)  PORT=$(ls /dev/ttyUSB* 2>/dev/null | head -n1)
+            [ -n "$PORT" ] || PORT=$(ls /dev/ttyACM* 2>/dev/null | head -n1) ;;
     *)      fatal "unsupported platform $(uname -s)" ;;
   esac
 fi

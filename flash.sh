@@ -14,6 +14,7 @@ set -u
 SCRIPT_P=$(readlink -f "$0" || realpath "$0")
 SCRIPT_D=$(dirname "$SCRIPT_P")
 BOOT_D=$SCRIPT_D/external/circle/boot
+CONFIG_D=$SCRIPT_D/config		# boot-partition payload: config-extra.txt, cmdline.txt
 IMAGE=$SCRIPT_D/build/kernel8-rpi4.img
 MODE=cm4
 
@@ -231,8 +232,12 @@ deploy_files () {
     try cp "$f" "$MNT/overlays/"
   done
   try cp "$BOOT_D/$cfg" "$MNT/config.txt"
-  # KERNEL options (Circle reads cmdline.txt; soundopt=24 selects 24-bit USB audio)
-  [ -e "$SCRIPT_D/cmdline.txt" ] && try cp "$SCRIPT_D/cmdline.txt" "$MNT/"
+  # InstOS-specific config.txt additions (e.g. forced HDMI mode for the 9.3" panel)
+  if [ -e "$CONFIG_D/config-extra.txt" ] ; then
+    try sh -c "cat '$CONFIG_D/config-extra.txt' >> '$MNT/config.txt'"
+  fi
+  # KERNEL options, parsed by Circle's CKernelOptions (e.g. loglevel=)
+  [ -e "$CONFIG_D/cmdline.txt" ] && try cp "$CONFIG_D/cmdline.txt" "$MNT/"
   echo ""
   echo "COPYING kernel $base..."
   try cp "$IMAGE" "$MNT/"
