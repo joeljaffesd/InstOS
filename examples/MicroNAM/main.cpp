@@ -3,7 +3,7 @@
 #include <modules/UAC.hpp>
 
 #include <MicroNAM.h>
-#include "models/MarshallModel.h"
+#include <assets/models/MarshallModel.h>
 
 #define SAMPLERATE 48000
 #define BLOCKSIZE 128
@@ -12,7 +12,7 @@
 // port: input channel 0 runs through a WaveNet and is written to both
 // outputs. Blinks the ACT LED as a heartbeat.
 //
-// Models: python3 external/MicroNAM/nam_to_header.py <model.nam> models/<Model>.h
+// Models live in assets/models/ (see its README for regeneration).
 // The net class must match the .nam architecture (weights count):
 //   StandardNet 13802 | LiteNet 6554 | FeatherNet 3026 | NanoNet 842
 #define NET     MicroNAM::FeatherNet
