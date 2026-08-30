@@ -51,6 +51,14 @@ public:
 		mpCells = new Cell[mRows * mCols];
 		buildPalette();
 		clear();
+
+		// clear BOTH framebuffers once: cells repaint their own area every
+		// present(), but the remainder strips outside the grid (height and
+		// width rarely divide evenly by the cell size) would otherwise show
+		// uninitialized framebuffer memory forever
+		mpGraphics->ClearScreen(mPalette[kDefaultBg]);
+		mpGraphics->UpdateDisplay(); // flip, then clear the other buffer
+		mpGraphics->ClearScreen(mPalette[kDefaultBg]);
 	}
 
 	~TUI() { delete[] mpCells; }
