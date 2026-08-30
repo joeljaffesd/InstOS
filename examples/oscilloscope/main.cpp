@@ -9,29 +9,19 @@
 // live on the HDMI display. Free-running (no trigger), one sample per pixel
 // column, newest samples at the right edge — modeled on the Jaffrack/Allolib
 // Oscilloscope (circular sample buffer feeding a line-strip mesh).
-class Oscilloscope : public InstOS::Firmware, public InstOS::AudioProcessor {
-	// modules: declaration order = init order; UAC requires USBHost before it
-	InstOS::USBHost mUSB;
-	InstOS::UAC mAudio{SAMPLERATE, 128, InstOS::UAC::TDeviceMode::DeviceModeTXRX, 24};
-	InstOS::HDMIDisplay mDisplay;
 
-	// single-writer (audio path) / single-reader (render loop) sample ring;
-	// races only ever smear pixels for one frame, so no locking needed.
-	// Sized to hold the full second of history the display shows.
+// The DSP half: passthrough that fills the sample ring the render loop reads.
+// Single-writer (audio path) / single-reader (render loop); races only ever
+// smear pixels for one frame, so no locking needed.
+class ScopeEngine : public InstOS::AudioEngine {
+public:
+	// sized to hold the full second of history the display shows
 	static constexpr unsigned kHistorySamples = SAMPLERATE; // 1 s at the stream rate
 	static constexpr unsigned kRingSize = 65536; // power of two >= kHistorySamples
 	float mRing[kRingSize] = {};
 	volatile unsigned mWriteIndex = 0;
 
-	boolean init() override {
-		if (!Firmware::init()) {
-			return FALSE;
-		}
-
-		mAudio.setProcessor(this);
-		return TRUE;
-	}
-
+private:
 	void processAudio(const float** inputBuffers, float** outputBuffers,
 			  unsigned nFrames) override {
 		unsigned nIndex = mWriteIndex;
@@ -43,6 +33,24 @@ class Oscilloscope : public InstOS::Firmware, public InstOS::AudioProcessor {
 			nIndex = (nIndex + 1) & (kRingSize - 1);
 		}
 		mWriteIndex = nIndex;
+	}
+};
+
+class Oscilloscope : public InstOS::Firmware {
+	// modules: declaration order = init order; UAC requires USBHost before it
+	InstOS::USBHost mUSB;
+	InstOS::UAC mAudio{SAMPLERATE, 128, InstOS::UAC::TDeviceMode::DeviceModeTXRX, 24};
+	InstOS::HDMIDisplay mDisplay;
+
+	ScopeEngine mEngine;
+
+	boolean init() override {
+		if (!Firmware::init()) {
+			return FALSE;
+		}
+
+		mAudio.setEngine(&mEngine);
+		return TRUE;
 	}
 
 	void loop() override {
@@ -61,15 +69,16 @@ class Oscilloscope : public InstOS::Firmware, public InstOS::AudioProcessor {
 
 		// one second of history across the screen, newest at the right edge;
 		// each column shows the min/max envelope of its span of samples
-		unsigned nSamplesPerColumn = kHistorySamples / nWidth;
+		unsigned nSamplesPerColumn = ScopeEngine::kHistorySamples / nWidth;
 		if (nSamplesPerColumn == 0) nSamplesPerColumn = 1;
-		unsigned nStart = (mWriteIndex - kHistorySamples) & (kRingSize - 1);
+		unsigned nStart = (mEngine.mWriteIndex - ScopeEngine::kHistorySamples)
+				  & (ScopeEngine::kRingSize - 1);
 
 		for (unsigned nX = 0; nX < nWidth; nX++) {
 			float fMin = 1.0f, fMax = -1.0f;
 			unsigned nBase = nStart + nX * nSamplesPerColumn;
 			for (unsigned i = 0; i < nSamplesPerColumn; i++) {
-				float fSample = mRing[(nBase + i) & (kRingSize - 1)];
+				float fSample = mEngine.mRing[(nBase + i) & (ScopeEngine::kRingSize - 1)];
 				if (fSample < fMin) fMin = fSample;
 				if (fSample > fMax) fMax = fSample;
 			}

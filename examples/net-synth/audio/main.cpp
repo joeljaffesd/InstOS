@@ -14,22 +14,26 @@
 // a key that arrives already held (say the first packet after a dropout)
 // sounds correctly rather than needing a note-on that never came.
 // Direct cable, static IPs: graphics/ (screen, maker) .1 -> audio/ (taker) .2.
-class KeyboardTaker : public InstOS::Firmware, public InstOS::AudioProcessor {
-	// modules: declaration order = init order
-	InstOS::USBHost mUSB;
-	InstOS::UAC mAudio{SAMPLERATE, 128, InstOS::UAC::TDeviceMode::DeviceModeTXRX, 24};
-	InstOS::Ethernet mNet{"192.168.10.2"};
-	InstOS::Barebone::Taker<SynthState> mTaker;
 
-	SynthState mState = {};
-
+// The DSP half: a member of the Firmware subclass below. loop() writes the
+// key bitmask; everything per-sample stays private to the audio path.
+class KeyboardEngine : public InstOS::AudioEngine {
+public:
 	// written by loop(), read by the audio path
 	volatile unsigned mTargetKeys = 0;
 
+	float mFrequency[kKeyCount] = {}; // filled at construction; loop() logs it
+
+	KeyboardEngine() {
+		for (unsigned i = 0; i < (unsigned) kKeyCount; i++) {
+			mFrequency[i] = keyFrequency((int) i);
+		}
+	}
+
+private:
 	// audio path only
 	float mPhase[kKeyCount] = {};
 	float mGain[kKeyCount] = {};
-	float mFrequency[kKeyCount] = {};
 
 	// Per-voice level. Thirteen voices at once can sum past full scale, but
 	// saws at different pitches rarely peak together, and UAC clamps rather
@@ -37,50 +41,6 @@ class KeyboardTaker : public InstOS::Firmware, public InstOS::AudioProcessor {
 	static constexpr float kVoiceLevel = 0.12f;
 	// ~2 ms one-pole on each gate: stepping straight to 0 or 1 would click
 	static constexpr float kGainSmooth = 0.01f;
-
-	unsigned mLastKeys = 0;
-
-	CActLED mActLED;
-	unsigned mLastBlinkTicks = 0;
-
-	boolean init() override {
-		if (!Firmware::init()) {
-			return FALSE;
-		}
-
-		for (unsigned i = 0; i < (unsigned) kKeyCount; i++) {
-			mFrequency[i] = keyFrequency((int) i);
-		}
-
-		CLogger::Get()->Write("netsynth", LogNotice,
-				      "Keyboard spans %u..%u Hz over %u keys",
-				      (unsigned) mFrequency[0],
-				      (unsigned) mFrequency[kKeyCount - 1], kKeyCount);
-
-		mAudio.setProcessor(this);
-		return TRUE;
-	}
-
-	void loop() override {
-		if (mTaker.get(mState)) {
-			mTargetKeys = mState.keys;
-
-			if (mState.keys != mLastKeys) {
-				mLastKeys = mState.keys;
-				CLogger::Get()->Write("netsynth", LogNotice,
-						      "keys %04x (update %u)",
-						      mState.keys, mState.changes);
-			}
-		}
-
-		unsigned nTicks = m_Timer.GetTicks();
-		if (nTicks - mLastBlinkTicks >= HZ / 2) {
-			mLastBlinkTicks = nTicks;
-			static boolean bOn = FALSE;
-			bOn = !bOn;
-			if (bOn) mActLED.On(); else mActLED.Off();
-		}
-	}
 
 	void processAudio(const float** inputBuffers, float** outputBuffers,
 			  unsigned nFrames) override {
@@ -112,6 +72,58 @@ class KeyboardTaker : public InstOS::Firmware, public InstOS::AudioProcessor {
 			fMix *= kVoiceLevel;
 			outputBuffers[0][i] = fMix;
 			outputBuffers[1][i] = fMix;
+		}
+	}
+};
+
+class KeyboardTaker : public InstOS::Firmware {
+	// modules: declaration order = init order
+	InstOS::USBHost mUSB;
+	InstOS::UAC mAudio{SAMPLERATE, 128, InstOS::UAC::TDeviceMode::DeviceModeTXRX, 24};
+	InstOS::Ethernet mNet{"192.168.10.2"};
+	InstOS::Barebone::Taker<SynthState> mTaker;
+
+	KeyboardEngine mEngine;
+
+	SynthState mState = {};
+
+	unsigned mLastKeys = 0;
+
+	CActLED mActLED;
+	unsigned mLastBlinkTicks = 0;
+
+	boolean init() override {
+		if (!Firmware::init()) {
+			return FALSE;
+		}
+
+		CLogger::Get()->Write("netsynth", LogNotice,
+				      "Keyboard spans %u..%u Hz over %u keys",
+				      (unsigned) mEngine.mFrequency[0],
+				      (unsigned) mEngine.mFrequency[kKeyCount - 1], kKeyCount);
+
+		mAudio.setEngine(&mEngine);
+		return TRUE;
+	}
+
+	void loop() override {
+		if (mTaker.get(mState)) {
+			mEngine.mTargetKeys = mState.keys;
+
+			if (mState.keys != mLastKeys) {
+				mLastKeys = mState.keys;
+				CLogger::Get()->Write("netsynth", LogNotice,
+						      "keys %04x (update %u)",
+						      mState.keys, mState.changes);
+			}
+		}
+
+		unsigned nTicks = m_Timer.GetTicks();
+		if (nTicks - mLastBlinkTicks >= HZ / 2) {
+			mLastBlinkTicks = nTicks;
+			static boolean bOn = FALSE;
+			bOn = !bOn;
+			if (bOn) mActLED.On(); else mActLED.Off();
 		}
 	}
 };

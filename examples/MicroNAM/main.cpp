@@ -24,7 +24,9 @@
 #define MODEL_WEIGHTS CAT(MODEL, Weights)
 #define MODEL_COUNT   CAT(MODEL, WeightsCount)
 
-// Diagnostic modes (see selfTest() too):
+static_assert(MODEL_COUNT == WEIGHTS, "model does not match NET architecture");
+
+// Diagnostic modes (see NamEngine::selfTest() too):
 //   0  NAM on USB input (normal)
 //   1  bypass: USB input straight to output, net never runs (input chain check)
 //   2  NAM on an internal sawtooth, USB input ignored (net-only check)
@@ -52,7 +54,6 @@ class NamBench : public InstOS::Firmware {
 		if (!Firmware::init()) {
 			return FALSE;
 		}
-		static_assert(MODEL_COUNT == WEIGHTS, "model does not match NET architecture");
 		mNet.reset();
 		mNet.load_weights(MODEL_WEIGHTS);
 		m_Logger.Write("nam", LogNotice, "bench: %u-frame blocks, %u weights; budget %u us/block",
@@ -84,32 +85,26 @@ class NamBench : public InstOS::Firmware {
 	}
 };
 #else
-class NamAmp : public InstOS::Firmware, public InstOS::AudioProcessor {
-	// modules: declaration order = init order; UAC requires USBHost before it
-	InstOS::USBHost mUSB;
-	// 24-bit: many UAC2 interfaces (e.g. UA Volt) expose capture at 24-bit only
-	InstOS::UAC mAudio{SAMPLERATE, BLOCKSIZE, InstOS::UAC::TDeviceMode::DeviceModeTXRX, 24};
+// The DSP half: a member of the Firmware subclass below. init() runs on the
+// audio path once the stream is up; loop() reads the public counters.
+class NamEngine : public InstOS::AudioEngine {
+public:
+	// written on the audio path, read by the app's loop()
+	volatile bool mLEDState = false;
+	unsigned mMaxUs = 0, mSumUs = 0, mBlocks = 0; // forward() timing
 
-	// block-templated: forward() processes exactly BLOCKSIZE samples per call
-	NET<BLOCKSIZE> mNet;
-
-	CActLED mActLED;
-	unsigned mActLEDTickCounter = 0;
-	bool mActLEDState = false;
-
-	boolean init() override {
-		if (!Firmware::init()) {
-			return FALSE;
-		}
-
-		static_assert(MODEL_COUNT == WEIGHTS, "model does not match NET architecture");
+	void init() override {
 		mNet.reset();
 		mNet.load_weights(MODEL_WEIGHTS);
 		selfTest();
-
-		mAudio.setProcessor(this);
-		return TRUE;
 	}
+
+private:
+	// block-templated: forward() processes exactly BLOCKSIZE samples per call
+	NET<BLOCKSIZE> mNet;
+
+	unsigned mTickCounter = 0;
+	float mSaw = 0.f;   // MODE 2 test signal
 
 	// Runs the net on a fixed deterministic block (3 passes) and logs the
 	// first outputs in micro-units. Reference from the same code natively on
@@ -119,17 +114,11 @@ class NamAmp : public InstOS::Firmware, public InstOS::AudioProcessor {
 		float in[BLOCKSIZE], out[BLOCKSIZE];
 		for (int i = 0; i < BLOCKSIZE; i++) in[i] = ((i * 37) % 97 - 48) / 64.0f;
 		for (int b = 0; b < 3; b++) mNet.forward(in, out);
-		m_Logger.Write("nam", LogNotice, "selftest: %d %d %d %d %d %d",
+		CLogger::Get()->Write("nam", LogNotice, "selftest: %d %d %d %d %d %d",
 			(int)(out[0]*1000000), (int)(out[1]*1000000), (int)(out[2]*1000000),
 			(int)(out[3]*1000000), (int)(out[4]*1000000), (int)(out[5]*1000000));
 		mNet.reset();
 	}
-
-	float mSaw = 0.f;   // MODE 2 test signal
-	float mPhase = 0.f; // MODE 3 test signal
-
-	// forward() timing, sampled in the audio callback and reported from loop()
-	unsigned mMaxUs = 0, mSumUs = 0, mBlocks = 0;
 
 	void processAudio(const float** inputBuffers,
 	                  float** outputBuffers,
@@ -154,21 +143,6 @@ class NamAmp : public InstOS::Firmware, public InstOS::AudioProcessor {
 			saw[i] = 0.25f * mSaw;
 		}
 		mNet.forward(saw, outputBuffers[0]);
-#elif MODE == 3
-		float sine[BLOCKSIZE];
-		for (unsigned i = 0; i < nFrames; i++) {
-			mPhase += 220.0f / SAMPLERATE;
-			if (mPhase >= 1.0f) mPhase -= 1.0f;
-			// 4th-order polynomial sine approximation, no libm
-			float x = mPhase < 0.5f ? mPhase : mPhase - 1.0f; // -0.5..0.5
-			float s4 = 16.0f * x * (0.5f - (x < 0 ? -x : x));   // Bhaskara-ish, |err| < 6%
-			sine[i] = 0.1f * s4;
-		}
-		unsigned t0 = CTimer::Get()->GetClockTicks();
-		mNet.forward(sine, outputBuffers[0]);
-		unsigned dt = CTimer::Get()->GetClockTicks() - t0;
-		if (dt > mMaxUs) mMaxUs = dt;
-		mSumUs += dt; mBlocks++;
 #else
 		unsigned t0 = CTimer::Get()->GetClockTicks();
 		mNet.forward(inputBuffers[0], outputBuffers[0]);
@@ -181,12 +155,32 @@ class NamAmp : public InstOS::Firmware, public InstOS::AudioProcessor {
 			outputBuffers[1][i] = outputBuffers[0][i]; // R = L
 
 			// increment and wrap ActLED tick counter at 0.5Hz
-			mActLEDTickCounter++;
-			if (mActLEDTickCounter >= (SAMPLERATE/2)) {
-				mActLEDState = !mActLEDState;
-				mActLEDTickCounter = 0;
+			mTickCounter++;
+			if (mTickCounter >= (SAMPLERATE/2)) {
+				mLEDState = !mLEDState;
+				mTickCounter = 0;
 			}
 		}
+	}
+};
+
+class NamAmp : public InstOS::Firmware {
+	// modules: declaration order = init order; UAC requires USBHost before it
+	InstOS::USBHost mUSB;
+	// 24-bit: many UAC2 interfaces (e.g. UA Volt) expose capture at 24-bit only
+	InstOS::UAC mAudio{SAMPLERATE, BLOCKSIZE, InstOS::UAC::TDeviceMode::DeviceModeTXRX, 24};
+
+	NamEngine mEngine;
+
+	CActLED mActLED;
+
+	boolean init() override {
+		if (!Firmware::init()) {
+			return FALSE;
+		}
+
+		mAudio.setEngine(&mEngine);
+		return TRUE;
 	}
 
 	void loop() override {
@@ -195,18 +189,18 @@ class NamAmp : public InstOS::Firmware, public InstOS::AudioProcessor {
 		unsigned now = CTimer::Get()->GetTicks();
 		if (now - lastReport >= HZ) {
 			lastReport = now;
-			if (mBlocks > 0) {
+			if (mEngine.mBlocks > 0) {
 				m_Logger.Write("nam", LogNotice, "forward: max %u us, avg %u us over %u blocks",
-					mMaxUs, mSumUs / mBlocks, mBlocks);
-				mMaxUs = 0; mSumUs = 0; mBlocks = 0;
+					mEngine.mMaxUs, mEngine.mSumUs / mEngine.mBlocks, mEngine.mBlocks);
+				mEngine.mMaxUs = 0; mEngine.mSumUs = 0; mEngine.mBlocks = 0;
 			}
 		}
 
 		// non-blocking heartbeat so module updates stay responsive
 		static bool lastLEDState = false;
-		if (mActLEDState != lastLEDState) {
-			lastLEDState = mActLEDState;
-			mActLEDState ? mActLED.On() : mActLED.Off();
+		if (mEngine.mLEDState != lastLEDState) {
+			lastLEDState = mEngine.mLEDState;
+			lastLEDState ? mActLED.On() : mActLED.Off();
 		}
 	}
 };
