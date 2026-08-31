@@ -1,5 +1,0 @@
-// C++ stdlib shim: Circle builds with -nostdinc++ and no libc, so map the
-// <c*> headers MicroNAM includes onto the compiler's freestanding headers.
-#pragma once
-#include <stdint.h>
-#include <stddef.h>

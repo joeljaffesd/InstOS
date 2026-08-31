@@ -1,4 +1,0 @@
-// C++ stdlib shim (see cstdint): memcpy/memset/strlen from Circle's util
-#pragma once
-#include <stddef.h>
-#include <circle/util.h>

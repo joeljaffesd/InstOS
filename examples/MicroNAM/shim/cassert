@@ -1,3 +1,0 @@
-// C++ stdlib shim (see cstdint): assert() from Circle
-#pragma once
-#include <assert.h>

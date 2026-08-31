@@ -6,4 +6,4 @@
 	url = https://github.com/joeljaffesd/barebone
 [submodule "external/MicroNAM"]
 	path = external/MicroNAM
-	url = https://github.com/jaffco/MicroNAM
+	url = https://github.com/joeljaffesd/MicroNAM
