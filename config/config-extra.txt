@@ -4,11 +4,12 @@
 # block is silently ignored on non-Pi5 hardware.
 [all]
 
-# Force the HDMI output to exist at the 9.3" panel's native mode even when no
-# display is detected at boot (EDID is only probed at power-on, and the panel
-# may be unpowered then to avoid back-powering the CM4). Timing per Waveshare:
-# https://www.waveshare.com/wiki/9.3inch_1600x600_LCD
-hdmi_force_hotplug=1
-hdmi_group=2
-hdmi_mode=87
-hdmi_cvt 1600 600 60 6 0 0 0
+# Pi 4B rig, Beetronics 17TS7M (17" 1920x1080 IPS, PCAP 10-point USB touch).
+# EDID picks the native mode, but 1080p negotiates as a CEA/TV mode and the
+# firmware then applies legacy OVERSCAN compensation — shrinking the picture
+# inside a black border. Kill it; the panel maps 1:1.
+disable_overscan=1
+
+# If the mode itself ever comes up wrong, force plain DMT 1080p60:
+#hdmi_group=2
+#hdmi_mode=82

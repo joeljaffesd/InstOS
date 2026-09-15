@@ -87,6 +87,8 @@ private:
 	unsigned mHuckSeen = 0; // last trigger acted on
 
 	static constexpr float kMonotronLevel = 0.4f; // chain peaks near 1.7 (measured)
+	static constexpr float kBassLevel = 1.5f;     // post-NAM makeup gain (to taste;
+	                                              // AudioIO clamps if the mix overshoots)
 	static constexpr float kHuckLevel = 0.8f;
 	static constexpr float kHzSmooth = 0.004f;    // ~5 ms one-pole on pitch
 	static constexpr float kGateSmooth = 0.01f;   // ~2 ms one-pole on gates
@@ -138,7 +140,7 @@ private:
 			mGlobalGate += (fGlobalTarget - mGlobalGate) * kGateSmooth;
 
 			// the feed: the mix before the one gate it must ignore
-			float fFeed = fBass * mBassGate + fMonotron
+			float fFeed = fBass * kBassLevel * mBassGate + fMonotron
 				      + fHuck * kHuckLevel;
 
 			if (mpScope != nullptr) {

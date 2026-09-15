@@ -12,9 +12,10 @@
 AARCH = 64
 RASPPI = 4
 
-# CM4 has no VL805; its USB port hangs off the BCM2711's internal xHCI
-# (pairs with otg_mode=1 in config.txt)
-DEFINE += -DUSE_XHCI_INTERNAL
+# Pi 4B rig: USB hangs off the VL805 behind PCIe, so the CM4's internal-xHCI
+# flag must be OFF here (the bench CM4 branch keeps it on). Rebuild the libs
+# after switching branches: ./build-circle.sh
+#DEFINE += -DUSE_XHCI_INTERNAL
 
 # Embedded assets (i.e. images or audio) push kernels past
 # Circle's 2 MB default, which sysinit punishes with 
